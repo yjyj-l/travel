@@ -74,4 +74,774 @@
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 999px;
-    padding:
+    padding: 8px 16px;
+    color: #fff;
+    font-size: 13px;
+    backdrop-filter: blur(6px);
+  }
+  .speed-control input[type=range] {
+    width: 90px;
+    accent-color: #eef3f7;
+  }
+  .speed-control span {
+    min-width: 26px;
+  }
+  .caption {
+    position: absolute;
+    bottom: 28px;
+    right: 24px;
+    z-index: 10;
+    color: #fff;
+    text-align: right;
+    min-height: 50px;
+    transition: opacity 0.3s;
+  }
+  .caption .city {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .caption .date {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 2px;
+  }
+  .caption .flag {
+    display: block;
+    margin-left: auto;
+    height: 30px;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+    margin-bottom: 6px;
+  }
+  .plane-marker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #d9e2ea 45%, rgba(217,226,234,0) 75%);
+    box-shadow: 0 0 10px 3px rgba(217,226,234,0.55), 0 0 22px 9px rgba(217,226,234,0.22);
+    pointer-events: none;
+    z-index: 20;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  .plane-trail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+    background: #d9e2ea;
+    pointer-events: none;
+    z-index: 19;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  .flag-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 34px;
+    height: 46px;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    transform-origin: 50% 17px;
+  }
+  .flag-badge img {
+    display: block;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 2px rgba(238,243,247,0.9), 0 0 14px 3px rgba(238,243,247,0.3), 0 3px 8px rgba(0,0,0,0.55);
+  }
+  .flag-badge .stem {
+    position: absolute;
+    left: 17px;
+    top: 34px;
+    width: 1px;
+    height: 12px;
+    background: linear-gradient(to bottom, rgba(238,243,247,0.7), rgba(238,243,247,0));
+  }
+  .settings-btn {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    z-index: 30;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .settings-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 340px;
+    max-width: 92vw;
+    height: 100%;
+    background: rgba(9,11,18,0.94);
+    backdrop-filter: blur(12px);
+    border-left: 1px solid rgba(255,255,255,0.12);
+    z-index: 40;
+    padding: 60px 20px 24px;
+    overflow-y: auto;
+    color: #fff;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  .settings-panel.open { transform: translateX(0); }
+  .settings-panel h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .settings-panel .hint { font-size: 12px; color: rgba(255,255,255,0.5); margin: 0 0 18px; line-height: 1.5; }
+  .settings-panel label { font-size: 12px; color: rgba(255,255,255,0.6); display: block; margin-bottom: 6px; }
+  .settings-panel input[type=text] {
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #fff;
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  .settings-panel > input[type=text] { margin-bottom: 18px; }
+  .trip-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .trip-row input.trip-year { flex: 0 0 52px; }
+  .trip-row select.trip-month {
+    flex: 0 0 56px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    padding: 8px 4px;
+    color: #fff;
+    font-size: 12px;
+  }
+  .trip-row input.trip-query { flex: 1 1 100%; }
+  .trip-row button {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .add-trip-btn { width: 100%; margin: 4px 0 18px; }
+  .save-btn { width: 100%; background: rgba(238,243,247,0.9); color: #0a0c14; font-weight: 600; border: none; }
+  .save-btn:hover { background: #fff; }
+  .save-btn:disabled { opacity: 0.5; cursor: default; }
+  .settings-status { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 10px; min-height: 16px; line-height: 1.5; }
+  .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>내가 다녀온 여행지 · 지구본</h1>
+  <p>오른쪽 위 ⚙ 버튼으로 나만의 여행지와 시기를 입력해보세요.</p>
+</header>
+
+<button class="settings-btn" id="settingsBtn" title="여행지 설정">⚙</button>
+
+<div id="globeViz"></div>
+
+<div class="controls">
+  <button id="playBtn">▶ 여정 재생</button>
+  <select id="yearFilter" class="year-filter"><option value="all">전체 연도</option></select>
+  <div class="speed-control">
+    <span>속도</span>
+    <input type="range" id="speedSlider" min="0.5" max="4" step="0.5" value="1.5">
+    <span id="speedLabel">1.5x</span>
+  </div>
+</div>
+
+<div class="caption" id="caption"></div>
+<div class="plane-marker" id="planeMarker"></div>
+<div class="plane-trail" id="trail0" style="width:7px;height:7px;"></div>
+<div class="plane-trail" id="trail1" style="width:5px;height:5px;"></div>
+<div class="plane-trail" id="trail2" style="width:3px;height:3px;"></div>
+
+<div class="settings-panel" id="settingsPanel">
+  <button class="close-btn" id="closeSettingsBtn">✕</button>
+  <h2>여행지 설정</h2>
+  <p class="hint">출발지와 다녀온 곳을 오래된 순서대로 입력하세요. 도시나 국가 이름으로 검색돼요. (예: 파리, 포르투갈, 오사카)</p>
+  <label>출발지 (집)</label>
+  <input type="text" id="homeInput" placeholder="예: 서울">
+  <label>여행지</label>
+  <div id="tripList"></div>
+  <button type="button" id="addTripBtn" class="add-trip-btn">+ 여행지 추가</button>
+  <button type="button" id="saveTripsBtn" class="save-btn">저장하고 반영하기</button>
+  <div class="settings-status" id="settingsStatus"></div>
+</div>
+
+<script src="https://unpkg.com/globe.gl"></script>
+<script>
+  let HOME = { name: "서울", lat: 37.5665, lng: 126.9780 };
+
+  let allDestinations = [
+    { name: "프랑스", month: "2026년 3월", lat: 48.8566, lng: 2.3522, color: "#b79ad1", iso2: "FR" },
+    { name: "포르투갈", month: "2026년 5월", lat: 38.7223, lng: -9.1393, color: "#cf9aa3", iso2: "PT" },
+    { name: "도쿄", month: "2026년 6월", lat: 35.6762, lng: 139.6503, color: "#8fb3d9", iso2: "JP" },
+    { name: "제주", month: "2026년 7월", lat: 33.4996, lng: 126.5312, color: "#7fbfae", iso2: "KR" },
+    { name: "뉴질랜드", month: "2026년 8월", lat: -36.8485, lng: 174.7633, color: "#d9c17f", iso2: "NZ" }
+  ];
+  let destinations = allDestinations; // currently displayed (possibly year-filtered) subset
+
+  const PALETTE = ["#b79ad1", "#cf9aa3", "#8fb3d9", "#7fbfae", "#d9c17f", "#e0a9a0", "#a3c9a8", "#c2a6d9", "#9ecbd6", "#d9b98f"];
+  function colorFor(i) { return PALETTE[i % PALETTE.length]; }
+
+  const SILVER_ACTIVE = "#eef3f7";
+  const SILVER_DONE = "#7c8894";
+
+  let legs = [];
+
+  const BASE_FLIGHT_MS = 4200;
+  const BASE_PAUSE_MS = 600;
+  let speedMultiplier = 1.5;
+  function getFlightDuration() { return BASE_FLIGHT_MS / speedMultiplier; }
+  function getPauseDuration() { return BASE_PAUSE_MS / speedMultiplier; }
+
+  const globe = Globe()(document.getElementById('globeViz'))
+    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+    .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+    .backgroundColor('#05070f')
+    .showAtmosphere(true)
+    .atmosphereColor('#cdd9e4')
+    .atmosphereAltitude(0.2)
+    .pointsData([])
+    .pointLat('lat')
+    .pointLng('lng')
+    .pointColor('color')
+    .pointAltitude(0.01)
+    .pointRadius('size')
+    .pointLabel(d => `<div style="font-size:12px;color:#fff;background:rgba(0,0,0,0.6);padding:4px 8px;border-radius:6px;">${d.name}</div>`)
+    .arcsData([])
+    .arcColor(d => d.phase === 'flying' ? SILVER_ACTIVE : SILVER_DONE)
+    .arcAltitude(0.22)
+    .arcStroke(d => d.phase === 'flying' ? 0.55 : 0.26)
+    .arcDashLength(d => d.dashLen)
+    .arcDashGap(0)
+    .arcDashAnimateTime(0)
+    .ringsData([])
+    .ringLat('lat')
+    .ringLng('lng')
+    .ringColor(() => t => `rgba(238,243,247,${1 - t})`)
+    .ringMaxRadius(3.5)
+    .ringPropagationSpeed(2.2)
+    .ringRepeatPeriod(850)
+    .polygonsData([])
+    .polygonAltitude(0.006)
+    .polygonCapColor(feat => visitedCountries.has(feat.properties.ISO_A2) ? 'rgba(238,243,247,0.32)' : 'rgba(255,255,255,0)')
+    .polygonSideColor(() => 'rgba(0,0,0,0)')
+    .polygonStrokeColor(feat => visitedCountries.has(feat.properties.ISO_A2) ? 'rgba(238,243,247,0.55)' : 'rgba(255,255,255,0)')
+    .polygonsTransitionDuration(700);
+
+  const visitedCountries = new Set();
+  let countryFeatures = [];
+  fetch('https://cdn.jsdelivr.net/gh/vasturiano/globe.gl/example/datasets/ne_110m_admin_0_countries.geojson')
+    .then(res => res.json())
+    .then(geo => {
+      countryFeatures = geo.features;
+      globe.polygonsData(countryFeatures);
+    })
+    .catch(() => {});
+
+  globe.pointOfView({ lat: 20, lng: 60, altitude: 2.5 }, 0);
+
+  const controls = globe.controls();
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.35;
+  controls.enableZoom = true;
+  controls.enablePan = false;
+  controls.minDistance = 130;
+  controls.maxDistance = 700;
+
+  let userInteracted = false;
+  controls.addEventListener('start', () => {
+    userInteracted = true;
+    controls.autoRotate = false;
+  });
+
+  const captionEl = document.getElementById('caption');
+  const playBtn = document.getElementById('playBtn');
+  const markerEl = document.getElementById('planeMarker');
+  const trailEls = [document.getElementById('trail0'), document.getElementById('trail1'), document.getElementById('trail2')];
+
+  function showCaption(text, sub, iso2) {
+    captionEl.style.opacity = 0;
+    setTimeout(() => {
+      const flag = iso2 ? `<img class="flag" src="https://flagcdn.com/h60/${iso2.toLowerCase()}.png" alt="${iso2} flag">` : '';
+      captionEl.innerHTML = text ? `${flag}<div class="city">${text}</div><div class="date">${sub || ''}</div>` : '';
+      captionEl.style.opacity = 1;
+    }, 200);
+  }
+
+  // -- great-circle interpolation, used to move the glowing marker along the path --
+  function toVec(lat, lng) {
+    const phi = lat * Math.PI / 180;
+    const lam = lng * Math.PI / 180;
+    return { x: Math.cos(phi) * Math.cos(lam), y: Math.cos(phi) * Math.sin(lam), z: Math.sin(phi) };
+  }
+  function toLatLng(v) {
+    return {
+      lat: Math.asin(Math.max(-1, Math.min(1, v.z))) * 180 / Math.PI,
+      lng: Math.atan2(v.y, v.x) * 180 / Math.PI
+    };
+  }
+  function greatCirclePoint(from, to, t) {
+    const v0 = toVec(from.lat, from.lng);
+    const v1 = toVec(to.lat, to.lng);
+    const dot = Math.max(-1, Math.min(1, v0.x*v1.x + v0.y*v1.y + v0.z*v1.z));
+    const omega = Math.acos(dot);
+    if (omega < 1e-6) return { lat: from.lat, lng: from.lng };
+    const s0 = Math.sin((1 - t) * omega) / Math.sin(omega);
+    const s1 = Math.sin(t * omega) / Math.sin(omega);
+    return toLatLng({ x: v0.x*s0 + v1.x*s1, y: v0.y*s0 + v1.y*s1, z: v0.z*s0 + v1.z*s1 });
+  }
+
+  let arcObjects = [];
+  let ringObjects = [];
+  let flightState = null; // { leg, arcObj, startTime, duration, resolve }
+  let trailHistory = [];
+  let playing = false;
+
+  // 0 = on the far side of the globe (hidden), 1 = fully facing the camera
+  function visibilityFactor(lat, lng, alt) {
+    const p = globe.getCoords(lat, lng, alt || 0);
+    const cam = globe.camera().position;
+    const plen = Math.hypot(p.x, p.y, p.z) || 1;
+    const nx = p.x / plen, ny = p.y / plen, nz = p.z / plen;
+    const tx = cam.x - p.x, ty = cam.y - p.y, tz = cam.z - p.z;
+    const tlen = Math.hypot(tx, ty, tz) || 1;
+    const dot = (nx * tx + ny * ty + nz * tz) / tlen;
+    return Math.max(0, Math.min(1, (dot + 0.06) / 0.22));
+  }
+
+  function renderMarker(lat, lng, alt) {
+    trailHistory.unshift({ lat, lng, alt });
+    if (trailHistory.length > 13) trailHistory.length = 13;
+
+    const vis = visibilityFactor(lat, lng, alt);
+    const c = globe.getScreenCoords(lat, lng, alt);
+    if (c && vis > 0) {
+      markerEl.style.transform = `translate(${c.x}px, ${c.y}px) translate(-50%, -50%) scale(${0.6 + 0.4 * vis})`;
+      markerEl.style.opacity = vis;
+    } else {
+      markerEl.style.opacity = 0;
+    }
+
+    const trailIdx = [4, 8, 12];
+    trailEls.forEach((el, i) => {
+      const p = trailHistory[trailIdx[i]];
+      if (!p) { el.style.opacity = 0; return; }
+      const tvis = visibilityFactor(p.lat, p.lng, p.alt);
+      const tc = globe.getScreenCoords(p.lat, p.lng, p.alt);
+      if (tc && tvis > 0) {
+        el.style.transform = `translate(${tc.x}px, ${tc.y}px) translate(-50%, -50%)`;
+        el.style.opacity = (0.5 - i * 0.15) * tvis;
+      } else {
+        el.style.opacity = 0;
+      }
+    });
+  }
+
+  function hideMarker() {
+    markerEl.style.opacity = 0;
+    trailEls.forEach(el => el.style.opacity = 0);
+    trailHistory = [];
+  }
+
+  function easeOutBack(x) {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+  }
+
+  let flagBadges = []; // { lat, lng, el, bornAt }
+  function addFlagBadge(dest) {
+    if (!dest.iso2) return;
+    const el = document.createElement('div');
+    el.className = 'flag-badge';
+    el.innerHTML = `<img src="https://flagcdn.com/w80/${dest.iso2.toLowerCase()}.png" alt="${dest.iso2}"><div class="stem"></div>`;
+    document.body.appendChild(el);
+    flagBadges.push({ lat: dest.lat, lng: dest.lng, el, bornAt: performance.now() });
+  }
+  function renderFlagBadges(now) {
+    flagBadges.forEach(b => {
+      const vis = visibilityFactor(b.lat, b.lng, 0.08);
+      const c = globe.getScreenCoords(b.lat, b.lng, 0.08);
+      if (c && vis > 0) {
+        const age = Math.min(1, (now - b.bornAt) / 550);
+        const popScale = age < 1 ? Math.max(0, easeOutBack(age)) : 1;
+        const scale = popScale * (0.5 + 0.5 * vis);
+        b.el.style.transform = `translate(${c.x}px, ${c.y}px) translate(-50%, -100%) scale(${scale})`;
+        b.el.style.opacity = vis;
+      } else {
+        b.el.style.opacity = 0;
+      }
+    });
+  }
+  function clearFlagBadges() {
+    flagBadges.forEach(b => b.el.remove());
+    flagBadges = [];
+  }
+
+  function landingBurst(lat, lng) {
+    const ring = { lat, lng };
+    ringObjects.push(ring);
+    globe.ringsData(ringObjects);
+    setTimeout(() => {
+      ringObjects = ringObjects.filter(r => r !== ring);
+      globe.ringsData(ringObjects);
+    }, 1900);
+  }
+
+  function tick(now) {
+    renderFlagBadges(now);
+    if (flightState) {
+      const { leg, arcObj, startTime, duration } = flightState;
+      const t = Math.min(1, (now - startTime) / duration);
+      const pos = greatCirclePoint(leg.from, leg.to, t);
+      arcObj.dashLen = Math.max(0.001, t);
+      renderMarker(pos.lat, pos.lng, 0.05 + 0.15 * Math.sin(Math.PI * t));
+      globe.arcsData(arcObjects);
+
+      // two smooth camera swoops per leg instead of frequent re-aiming (which looked jittery)
+      if (!userInteracted) {
+        if (flightState.camStage === 0 && t > 0.28) {
+          flightState.camStage = 1;
+          const mid = greatCirclePoint(leg.from, leg.to, 0.62);
+          globe.pointOfView({ lat: mid.lat, lng: mid.lng, altitude: 2.25 }, duration * 0.42);
+        } else if (flightState.camStage === 1 && t > 0.72) {
+          flightState.camStage = 2;
+          globe.pointOfView({ lat: leg.to.lat, lng: leg.to.lng, altitude: 1.6 }, duration * 0.26);
+        }
+      }
+      if (t >= 1) {
+        arcObj.phase = 'done';
+        globe.arcsData(arcObjects);
+        hideMarker();
+        landingBurst(leg.to.lat, leg.to.lng);
+        addFlagBadge(leg.dest);
+        showCaption(leg.dest.name, `${leg.dest.month} 도착`, leg.dest.iso2);
+        if (leg.dest.iso2) {
+          visitedCountries.add(leg.dest.iso2);
+          if (countryFeatures.length) globe.polygonsData(countryFeatures);
+        }
+        const resolve = flightState.resolve;
+        flightState = null;
+        resolve();
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  function flyLeg(leg) {
+    return new Promise(resolve => {
+      const duration = getFlightDuration();
+      // each new leg re-engages the tracking camera; a manual drag only pauses it for the leg you're dragging during
+      userInteracted = false;
+      globe.pointOfView({ lat: leg.from.lat, lng: leg.from.lng, altitude: 1.7 }, Math.min(650, duration * 0.3));
+
+      if (leg.type === 'out') showCaption(leg.dest.name, leg.dest.month);
+      else showCaption(`${HOME.name}로 귀국`, leg.dest.month);
+
+      trailHistory = [];
+      const arcObj = { startLat: leg.from.lat, startLng: leg.from.lng, endLat: leg.to.lat, endLng: leg.to.lng, phase: 'flying', dashLen: 0.001 };
+      arcObjects.push(arcObj);
+      globe.arcsData(arcObjects);
+
+      flightState = { leg, arcObj, startTime: performance.now(), duration, resolve, camStage: 0 };
+    });
+  }
+
+  async function playSequence() {
+    if (playing || !legs.length) return;
+    playing = true;
+    playBtn.textContent = '재생 중…';
+    arcObjects = [];
+    globe.arcsData(arcObjects);
+    controls.autoRotate = false;
+
+    for (const leg of legs) {
+      await flyLeg(leg);
+      await new Promise(r => setTimeout(r, getPauseDuration()));
+    }
+
+    showCaption(null);
+    if (!userInteracted) {
+      globe.pointOfView({ lat: 20, lng: 60, altitude: 2.5 }, 1500);
+      controls.autoRotate = true;
+    }
+    playBtn.textContent = '▶ 다시 재생';
+    playing = false;
+  }
+
+  playBtn.addEventListener('click', playSequence);
+
+  const speedSlider = document.getElementById('speedSlider');
+  const speedLabel = document.getElementById('speedLabel');
+  speedSlider.value = speedMultiplier;
+  speedLabel.textContent = speedMultiplier + 'x';
+  speedSlider.addEventListener('input', () => {
+    speedMultiplier = parseFloat(speedSlider.value);
+    speedLabel.textContent = speedMultiplier + 'x';
+  });
+
+  // ---- rebuild globe data whenever HOME / destinations change ----
+  function rebuildGlobeData() {
+    flightState = null;
+    playing = false;
+    hideMarker();
+    clearFlagBadges();
+    showCaption(null);
+
+    arcObjects = [];
+    globe.arcsData(arcObjects);
+    ringObjects = [];
+    globe.ringsData(ringObjects);
+    visitedCountries.clear();
+    if (countryFeatures.length) globe.polygonsData(countryFeatures);
+
+    const points = [
+      { name: HOME.name, lat: HOME.lat, lng: HOME.lng, size: 0.5, color: "#f3e9d2" },
+      ...destinations.map(d => ({ name: d.name, lat: d.lat, lng: d.lng, size: 0.32, color: d.color }))
+    ];
+    globe.pointsData(points);
+
+    legs = destinations.map(d => ({ from: HOME, to: d, dest: d, type: 'out' }));
+  }
+
+  // ---- year filter ----
+  const yearFilterEl = document.getElementById('yearFilter');
+
+  function getYearsList() {
+    const years = new Set();
+    allDestinations.forEach(d => {
+      const y = parseLabel(d.month).year;
+      if (y) years.add(y);
+    });
+    return Array.from(years).sort();
+  }
+
+  function populateYearFilter(selected) {
+    const years = getYearsList();
+    yearFilterEl.innerHTML = '<option value="all">전체 연도</option>' +
+      years.map(y => `<option value="${y}">${y}년</option>`).join('');
+    yearFilterEl.value = selected && years.includes(selected) ? selected : 'all';
+  }
+
+  function applyYearFilter(year) {
+    destinations = (year === 'all') ? allDestinations : allDestinations.filter(d => parseLabel(d.month).year === year);
+    rebuildGlobeData();
+  }
+
+  yearFilterEl.addEventListener('change', () => {
+    userInteracted = false;
+    applyYearFilter(yearFilterEl.value);
+    playSequence();
+  });
+
+  // ---- persistence ----
+  function loadTripsFromStorage() {
+    try {
+      const raw = localStorage.getItem('travelGlobeData');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed.home || !Array.isArray(parsed.trips) || !parsed.trips.length) return null;
+      return parsed;
+    } catch (e) { return null; }
+  }
+  function saveTripsToStorage() {
+    localStorage.setItem('travelGlobeData', JSON.stringify({ home: HOME, trips: allDestinations }));
+  }
+
+  // ---- settings panel ----
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  const homeInput = document.getElementById('homeInput');
+  const tripListEl = document.getElementById('tripList');
+  const addTripBtn = document.getElementById('addTripBtn');
+  const saveTripsBtn = document.getElementById('saveTripsBtn');
+  const statusEl = document.getElementById('settingsStatus');
+
+  let draftTrips = [];
+  let draftHomeQuery = '';
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function monthOptions(selected) {
+    let opts = '<option value="">월</option>';
+    for (let m = 1; m <= 12; m++) {
+      opts += `<option value="${m}"${String(selected) === String(m) ? ' selected' : ''}>${m}월</option>`;
+    }
+    return opts;
+  }
+
+  function renderTripRows() {
+    tripListEl.innerHTML = draftTrips.map((t, i) => `
+      <div class="trip-row" data-i="${i}">
+        <input type="text" class="trip-year" placeholder="연도" maxlength="4" value="${escapeHtml(t.year)}" data-field="year">
+        <select class="trip-month" data-field="month">${monthOptions(t.month)}</select>
+        <input type="text" class="trip-query" placeholder="도시/국가 이름" value="${escapeHtml(t.query)}" data-field="query">
+        <button type="button" data-action="up" title="위로">↑</button>
+        <button type="button" data-action="down" title="아래로">↓</button>
+        <button type="button" data-action="remove" title="삭제">✕</button>
+      </div>
+    `).join('');
+    tripListEl.querySelectorAll('input, select').forEach(inp => {
+      const evt = inp.tagName === 'SELECT' ? 'change' : 'input';
+      inp.addEventListener(evt, () => {
+        const i = Number(inp.closest('.trip-row').dataset.i);
+        draftTrips[i][inp.dataset.field] = inp.value;
+      });
+    });
+    tripListEl.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.closest('.trip-row').dataset.i);
+        const action = btn.dataset.action;
+        if (action === 'remove') draftTrips.splice(i, 1);
+        if (action === 'up' && i > 0) [draftTrips[i - 1], draftTrips[i]] = [draftTrips[i], draftTrips[i - 1]];
+        if (action === 'down' && i < draftTrips.length - 1) [draftTrips[i + 1], draftTrips[i]] = [draftTrips[i], draftTrips[i + 1]];
+        renderTripRows();
+      });
+    });
+  }
+
+  function parseLabel(label) {
+    const yearMatch = (label || '').match(/(\d{4})/);
+    const monthMatch = (label || '').match(/(\d{1,2})\s*월/);
+    return { year: yearMatch ? yearMatch[1] : '', month: monthMatch ? monthMatch[1] : '' };
+  }
+  function buildLabel(year, month) {
+    const y = (year || '').trim();
+    const m = (month || '').trim();
+    if (y && m) return `${y}년 ${m}월`;
+    if (y) return `${y}년`;
+    if (m) return `${m}월`;
+    return '';
+  }
+
+  function openSettings() {
+    draftHomeQuery = HOME.name;
+    draftTrips = allDestinations.map(d => {
+      const p = parseLabel(d.month);
+      return { query: d.name, year: p.year, month: p.month };
+    });
+    homeInput.value = draftHomeQuery;
+    statusEl.textContent = '';
+    renderTripRows();
+    settingsPanel.classList.add('open');
+  }
+  function closeSettings() {
+    settingsPanel.classList.remove('open');
+  }
+  settingsBtn.addEventListener('click', () => {
+    settingsPanel.classList.contains('open') ? closeSettings() : openSettings();
+  });
+  closeSettingsBtn.addEventListener('click', closeSettings);
+  homeInput.addEventListener('input', () => { draftHomeQuery = homeInput.value; });
+  addTripBtn.addEventListener('click', () => {
+    draftTrips.push({ query: '', year: '', month: '' });
+    renderTripRows();
+  });
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function geocodePlace(query) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&accept-language=ko&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data || !data.length) return null;
+    const d = data[0];
+    return {
+      lat: parseFloat(d.lat),
+      lng: parseFloat(d.lon),
+      iso2: d.address && d.address.country_code ? d.address.country_code.toUpperCase() : null
+    };
+  }
+
+  saveTripsBtn.addEventListener('click', async () => {
+    const validTrips = draftTrips.filter(t => t.query.trim());
+    if (!draftHomeQuery.trim() || !validTrips.length) {
+      statusEl.textContent = '출발지와 여행지를 최소 1개 이상 입력해주세요.';
+      return;
+    }
+    saveTripsBtn.disabled = true;
+
+    try {
+      statusEl.textContent = `"${draftHomeQuery}" 위치 확인 중…`;
+      const homeGeo = await geocodePlace(draftHomeQuery);
+      if (!homeGeo) {
+        statusEl.textContent = `"${draftHomeQuery}" 위치를 찾지 못했어요. 다른 이름으로 시도해보세요.`;
+        saveTripsBtn.disabled = false;
+        return;
+      }
+      await sleep(350);
+
+      const newDestinations = [];
+      for (let i = 0; i < validTrips.length; i++) {
+        const t = validTrips[i];
+        statusEl.textContent = `"${t.query}" 확인 중… (${i + 1}/${validTrips.length})`;
+        const geo = await geocodePlace(t.query);
+        if (!geo) {
+          statusEl.textContent = `"${t.query}" 위치를 찾지 못했어요. 이름을 조금 더 구체적으로 적어보세요.`;
+          saveTripsBtn.disabled = false;
+          return;
+        }
+        newDestinations.push({ name: t.query, month: buildLabel(t.year, t.month), lat: geo.lat, lng: geo.lng, iso2: geo.iso2, color: colorFor(i) });
+        await sleep(350);
+      }
+
+      HOME = { name: draftHomeQuery, lat: homeGeo.lat, lng: homeGeo.lng };
+      allDestinations = newDestinations;
+      saveTripsToStorage();
+      populateYearFilter('all');
+      applyYearFilter('all');
+
+      statusEl.textContent = '저장 완료! 재생을 시작해요.';
+      saveTripsBtn.disabled = false;
+      closeSettings();
+      userInteracted = false;
+      controls.autoRotate = true;
+      playSequence();
+    } catch (e) {
+      statusEl.textContent = '위치 확인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+      saveTripsBtn.disabled = false;
+    }
+  });
+
+  // ---- init ----
+  const saved = loadTripsFromStorage();
+  if (saved) {
+    HOME = saved.home;
+    allDestinations = saved.trips;
+  }
+  populateYearFilter('all');
+  applyYearFilter('all');
+  setTimeout(playSequence, 1000);
+</script>
+
+</body>
+</html>
