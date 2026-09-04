@@ -177,6 +177,24 @@
     font-size: 18px;
     line-height: 1;
   }
+  .auth-box {
+    position: absolute;
+    top: 20px;
+    right: 78px;
+    z-index: 30;
+  }
+  .auth-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 16px;
+  }
+  .auth-btn img {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+  }
   .settings-panel {
     position: absolute;
     top: 0;
@@ -259,6 +277,7 @@
   <p>오른쪽 위 ⚙ 버튼으로 나만의 여행지와 시기를 입력해보세요.</p>
 </header>
 
+<div class="auth-box"><button class="auth-btn" id="authBtn">Google로 로그인</button></div>
 <button class="settings-btn" id="settingsBtn" title="여행지 설정">⚙</button>
 
 <div id="globeViz"></div>
@@ -293,7 +312,26 @@
 </div>
 
 <script src="https://unpkg.com/globe.gl"></script>
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAif8NoTwY64lAKMR3vtStBNIvsfMPwJGE",
+    authDomain: "travel-globe-b8a84.firebaseapp.com",
+    projectId: "travel-globe-b8a84",
+    storageBucket: "travel-globe-b8a84.firebasestorage.app",
+    messagingSenderId: "910885579748",
+    appId: "1:910885579748:web:5c66fa2962228e3dc3f5f1",
+    measurementId: "G-9W0RZWLRTY"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const auth = getAuth(fbApp);
+  const db = getFirestore(fbApp);
+  const googleProvider = new GoogleAuthProvider();
+  let currentUser = null;
+
   let HOME = { name: "서울", lat: 37.5665, lng: 126.9780 };
 
   let allDestinations = [
@@ -531,7 +569,7 @@
           globe.pointOfView({ lat: mid.lat, lng: mid.lng, altitude: 2.25 }, duration * 0.42);
         } else if (flightState.camStage === 1 && t > 0.72) {
           flightState.camStage = 2;
-          globe.pointOfView({ lat: leg.to.lat, lng: leg.to.lng, altitude: 1.6 }, duration * 0.26);
+          globe.pointOfView({ lat: leg.to.lat, lng: leg.to.lng, altitude: 1.0 }, duration * 0.26);
         }
       }
       if (t >= 1) {
@@ -661,7 +699,8 @@
   });
 
   // ---- persistence ----
-  function loadTripsFromStorage() {
+  // guest mode (not logged in): browser localStorage only, this device only
+  function loadTripsFromLocalStorage() {
     try {
       const raw = localStorage.getItem('travelGlobeData');
       if (!raw) return null;
@@ -670,8 +709,36 @@
       return parsed;
     } catch (e) { return null; }
   }
-  function saveTripsToStorage() {
+  function saveTripsToLocalStorage() {
     localStorage.setItem('travelGlobeData', JSON.stringify({ home: HOME, trips: allDestinations }));
+  }
+
+  // logged-in mode: Firestore, synced across devices, one document per user
+  async function loadTripsFromCloud(uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.home && Array.isArray(data.trips) && data.trips.length) return data;
+      }
+      return null;
+    } catch (e) {
+      console.error('Firestore load failed', e);
+      return null;
+    }
+  }
+  async function saveTripsToCloud() {
+    if (!currentUser) return;
+    try {
+      await setDoc(doc(db, 'users', currentUser.uid), { home: HOME, trips: allDestinations, updatedAt: Date.now() });
+    } catch (e) {
+      console.error('Firestore save failed', e);
+    }
+  }
+  // saves to wherever the current session should persist: cloud if logged in, else local
+  async function persistTrips() {
+    if (currentUser) await saveTripsToCloud();
+    else saveTripsToLocalStorage();
   }
 
   // ---- settings panel ----
@@ -816,7 +883,7 @@
 
       HOME = { name: draftHomeQuery, lat: homeGeo.lat, lng: homeGeo.lng };
       allDestinations = newDestinations;
-      saveTripsToStorage();
+      await persistTrips();
       populateYearFilter('all');
       applyYearFilter('all');
 
@@ -832,14 +899,68 @@
     }
   });
 
-  // ---- init ----
-  const saved = loadTripsFromStorage();
+  // ---- auth ----
+  const authBtn = document.getElementById('authBtn');
+
+  function renderAuthBox() {
+    if (currentUser) {
+      const photo = currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="">` : '';
+      authBtn.innerHTML = `${photo}<span>${escapeHtml(currentUser.displayName || '로그아웃')}</span>`;
+      authBtn.title = '클릭하면 로그아웃돼요';
+      authBtn.dataset.mode = 'logout';
+    } else {
+      authBtn.innerHTML = 'Google로 로그인';
+      authBtn.title = '로그인하면 어느 기기에서든 내 여행 데이터를 불러와요';
+      authBtn.dataset.mode = 'login';
+    }
+  }
+
+  authBtn.addEventListener('click', async () => {
+    if (authBtn.dataset.mode === 'login') {
+      authBtn.disabled = true;
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (e) {
+        console.error('sign-in failed', e);
+        alert('로그인에 실패했어요. 다시 시도해주세요.');
+      }
+      authBtn.disabled = false;
+    } else {
+      if (confirm('로그아웃할까요?')) {
+        await signOut(auth);
+      }
+    }
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    renderAuthBox();
+    if (user) {
+      const cloudData = await loadTripsFromCloud(user.uid);
+      if (cloudData) {
+        HOME = cloudData.home;
+        allDestinations = cloudData.trips;
+      } else {
+        // first login: carry over whatever guest/local data is currently showing
+        await saveTripsToCloud();
+      }
+      populateYearFilter('all');
+      applyYearFilter('all');
+      userInteracted = false;
+      controls.autoRotate = true;
+      playSequence();
+    }
+  });
+
+  // ---- init (guest/local data first; overwritten above if a login resolves) ----
+  const saved = loadTripsFromLocalStorage();
   if (saved) {
     HOME = saved.home;
     allDestinations = saved.trips;
   }
   populateYearFilter('all');
   applyYearFilter('all');
+  renderAuthBox();
   setTimeout(playSequence, 1000);
 </script>
 
