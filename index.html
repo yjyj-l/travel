@@ -464,9 +464,10 @@
     .pointLat('lat')
     .pointLng('lng')
     .pointColor('color')
-    .pointAltitude(0.01)
-    .pointRadius('size')
-    .pointLabel(d => `<div style="font-size:12px;color:#fff;background:rgba(0,0,0,0.6);padding:4px 8px;border-radius:6px;">${d.name}</div>`)
+    .pointAltitude('altitude')
+    .pointRadius('radius')
+    .pointResolution(28)
+    .pointLabel(d => d.type === 'halo' ? '' : `<div style="font-size:12px;color:#fff;background:rgba(0,0,0,0.6);padding:4px 8px;border-radius:6px;">${d.name}</div>`)
     .arcsData([])
     .arcColor(d => d.phase === 'flying' ? SILVER_ACTIVE : SILVER_DONE)
     .arcAltitude(0.22)
@@ -480,23 +481,7 @@
     .ringColor(() => t => `rgba(238,243,247,${1 - t})`)
     .ringMaxRadius(3.5)
     .ringPropagationSpeed(2.2)
-    .ringRepeatPeriod(850)
-    .polygonsData([])
-    .polygonAltitude(0.006)
-    .polygonCapColor(feat => visitedCountries.has(feat.properties.ISO_A2) ? 'rgba(238,243,247,0.32)' : 'rgba(255,255,255,0)')
-    .polygonSideColor(() => 'rgba(0,0,0,0)')
-    .polygonStrokeColor(feat => visitedCountries.has(feat.properties.ISO_A2) ? 'rgba(238,243,247,0.55)' : 'rgba(255,255,255,0)')
-    .polygonsTransitionDuration(700);
-
-  const visitedCountries = new Set();
-  let countryFeatures = [];
-  fetch('https://cdn.jsdelivr.net/gh/vasturiano/globe.gl/example/datasets/ne_110m_admin_0_countries.geojson')
-    .then(res => res.json())
-    .then(geo => {
-      countryFeatures = geo.features;
-      globe.polygonsData(countryFeatures);
-    })
-    .catch(() => {});
+    .ringRepeatPeriod(850);
 
   globe.pointOfView({ lat: 20, lng: 60, altitude: 2.5 }, 0);
 
@@ -637,6 +622,45 @@
     flagBadges = [];
   }
 
+  // -- persistent glow halos left behind at visited destinations --
+  // rendered through the points layer (geo-anchored lat/lng + degree-based radius), so unlike the
+  // screen-space CSS overlays above, halos keep their real-world footprint size as the camera zooms
+  let currentDotPoints = [];
+  let visitedHalos = [];
+
+  function hexToRgba(hex, alpha) {
+    const h = (hex || '#ffffff').replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function renderPointsLayer() {
+    globe.pointsData([...currentDotPoints, ...visitedHalos]);
+  }
+
+  // three concentric discs of shrinking radius / growing opacity approximate a soft radial glow
+  const HALO_RINGS = [
+    { radius: 3.4, alpha: 0.05, altitude: 0.0012 },
+    { radius: 2.3, alpha: 0.08, altitude: 0.0016 },
+    { radius: 1.3, alpha: 0.13, altitude: 0.0020 }
+  ];
+  function addVisitedHalo(dest) {
+    HALO_RINGS.forEach(ring => {
+      visitedHalos.push({
+        lat: dest.lat,
+        lng: dest.lng,
+        name: dest.name,
+        type: 'halo',
+        color: hexToRgba(dest.color, ring.alpha),
+        radius: ring.radius,
+        altitude: ring.altitude
+      });
+    });
+    renderPointsLayer();
+  }
+
   function landingBurst(lat, lng) {
     const ring = { lat, lng };
     ringObjects.push(ring);
@@ -675,10 +699,7 @@
         landingBurst(leg.to.lat, leg.to.lng);
         addFlagBadge(leg.dest);
         showCaption(leg.dest.name, `${leg.dest.month} 도착`, leg.dest.iso2);
-        if (leg.dest.iso2) {
-          visitedCountries.add(leg.dest.iso2);
-          if (countryFeatures.length) globe.polygonsData(countryFeatures);
-        }
+        addVisitedHalo(leg.dest);
         const resolve = flightState.resolve;
         flightState = null;
         resolve();
@@ -752,17 +773,16 @@
     globe.arcsData(arcObjects);
     ringObjects = [];
     globe.ringsData(ringObjects);
-    visitedCountries.clear();
-    if (countryFeatures.length) globe.polygonsData(countryFeatures);
 
     // flight order always follows the trip date, not however the settings panel list is arranged
     const orderedDestinations = [...destinations].sort((a, b) => monthSortKey(a.month) - monthSortKey(b.month));
 
-    const points = [
-      { name: HOME.name, lat: HOME.lat, lng: HOME.lng, size: 0.5, color: "#f3e9d2" },
-      ...orderedDestinations.map(d => ({ name: d.name, lat: d.lat, lng: d.lng, size: 0.32, color: d.color }))
+    currentDotPoints = [
+      { name: HOME.name, lat: HOME.lat, lng: HOME.lng, radius: 0.5, altitude: 0.01, color: "#f3e9d2" },
+      ...orderedDestinations.map(d => ({ name: d.name, lat: d.lat, lng: d.lng, radius: 0.32, altitude: 0.01, color: d.color }))
     ];
-    globe.pointsData(points);
+    visitedHalos = [];
+    renderPointsLayer();
 
     legs = orderedDestinations.map(d => ({ from: HOME, to: d, dest: d, type: 'out' }));
   }
