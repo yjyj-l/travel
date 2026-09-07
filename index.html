@@ -234,17 +234,47 @@
     margin-bottom: 8px;
     flex-wrap: wrap;
   }
-  .trip-row input.trip-year { flex: 0 0 52px; }
-  .trip-row select.trip-month {
-    flex: 0 0 56px;
+  .trip-row input.trip-month {
+    flex: 0 0 132px;
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 8px;
-    padding: 8px 4px;
+    padding: 8px 8px;
     color: #fff;
     font-size: 12px;
+    color-scheme: dark;
   }
-  .trip-row input.trip-query { flex: 1 1 100%; }
+  .trip-query-wrap {
+    position: relative;
+    flex: 1 1 100%;
+  }
+  .trip-query-wrap input.trip-query { width: 100%; }
+  .trip-suggest {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: rgba(15,17,26,0.98);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    max-height: 190px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .trip-suggest-item {
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+    color: rgba(255,255,255,0.85);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .trip-suggest-item:last-child { border-bottom: none; }
+  .trip-suggest-item:hover { background: rgba(255,255,255,0.1); }
+  .trip-suggest-item.trip-suggest-msg { cursor: default; color: rgba(255,255,255,0.5); }
+  .trip-suggest-item.trip-suggest-msg:hover { background: transparent; }
   .trip-row button {
     flex: 0 0 auto;
     width: 26px;
@@ -301,7 +331,7 @@
 <div class="settings-panel" id="settingsPanel">
   <button class="close-btn" id="closeSettingsBtn">✕</button>
   <h2>여행지 설정</h2>
-  <p class="hint">출발지와 다녀온 곳을 오래된 순서대로 입력하세요. 도시나 국가 이름으로 검색돼요. (예: 파리, 포르투갈, 오사카)</p>
+  <p class="hint">출발지와 다녀온 곳을 오래된 순서대로 입력하세요. 여행지 이름을 2글자 이상 입력하면 검색 후보가 아래에 뜨는데, 그중 하나를 클릭해서 확정해주세요.</p>
   <label>출발지 (집)</label>
   <input type="text" id="homeInput" placeholder="예: 서울">
   <label>여행지</label>
@@ -753,38 +783,67 @@
 
   let draftTrips = [];
   let draftHomeQuery = '';
+  let draftTripSuggestions = {}; // rowIndex -> [{label, shortName, lat, lng, iso2}]
+  const suggestTimers = {};
+  const suggestSeq = {};
 
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function monthOptions(selected) {
-    let opts = '<option value="">월</option>';
-    for (let m = 1; m <= 12; m++) {
-      opts += `<option value="${m}"${String(selected) === String(m) ? ' selected' : ''}>${m}월</option>`;
-    }
-    return opts;
-  }
-
   function renderTripRows() {
+    draftTripSuggestions = {};
     tripListEl.innerHTML = draftTrips.map((t, i) => `
       <div class="trip-row" data-i="${i}">
-        <input type="text" class="trip-year" placeholder="연도" maxlength="4" value="${escapeHtml(t.year)}" data-field="year">
-        <select class="trip-month" data-field="month">${monthOptions(t.month)}</select>
-        <input type="text" class="trip-query" placeholder="도시/국가 이름" value="${escapeHtml(t.query)}" data-field="query">
+        <input type="month" class="trip-month" value="${escapeHtml(t.monthValue || '')}" data-field="monthValue">
+        <div class="trip-query-wrap">
+          <input type="text" class="trip-query" placeholder="도시/국가 이름" value="${escapeHtml(t.query)}" data-field="query" autocomplete="off">
+          <div class="trip-suggest"></div>
+        </div>
         <button type="button" data-action="up" title="위로">↑</button>
         <button type="button" data-action="down" title="아래로">↓</button>
         <button type="button" data-action="remove" title="삭제">✕</button>
       </div>
     `).join('');
-    tripListEl.querySelectorAll('input, select').forEach(inp => {
-      const evt = inp.tagName === 'SELECT' ? 'change' : 'input';
-      inp.addEventListener(evt, () => {
+
+    tripListEl.querySelectorAll('.trip-month').forEach(inp => {
+      inp.addEventListener('input', () => {
         const i = Number(inp.closest('.trip-row').dataset.i);
-        draftTrips[i][inp.dataset.field] = inp.value;
+        draftTrips[i].monthValue = inp.value;
       });
     });
-    tripListEl.querySelectorAll('button').forEach(btn => {
+
+    tripListEl.querySelectorAll('.trip-row').forEach(row => {
+      const i = Number(row.dataset.i);
+      const queryInput = row.querySelector('.trip-query');
+      const suggestEl = row.querySelector('.trip-suggest');
+
+      queryInput.addEventListener('input', () => {
+        draftTrips[i].query = queryInput.value;
+        draftTrips[i].geo = null;
+        scheduleSuggest(i, queryInput.value, suggestEl);
+      });
+      queryInput.addEventListener('focus', () => {
+        if (draftTripSuggestions[i] && draftTripSuggestions[i].length) suggestEl.style.display = 'block';
+      });
+      queryInput.addEventListener('blur', () => {
+        setTimeout(() => { suggestEl.style.display = 'none'; }, 150);
+      });
+      suggestEl.addEventListener('mousedown', (e) => e.preventDefault());
+      suggestEl.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-suggest-item]');
+        if (!item) return;
+        const picked = (draftTripSuggestions[i] || [])[Number(item.dataset.suggestItem)];
+        if (!picked) return;
+        draftTrips[i].query = picked.shortName;
+        draftTrips[i].geo = { lat: picked.lat, lng: picked.lng, iso2: picked.iso2 };
+        queryInput.value = picked.shortName;
+        suggestEl.style.display = 'none';
+        suggestEl.innerHTML = '';
+      });
+    });
+
+    tripListEl.querySelectorAll('.trip-row button').forEach(btn => {
       btn.addEventListener('click', () => {
         const i = Number(btn.closest('.trip-row').dataset.i);
         const action = btn.dataset.action;
@@ -796,25 +855,68 @@
     });
   }
 
+  // debounced Nominatim search for the destination-name autocomplete dropdown
+  function scheduleSuggest(i, query, suggestEl) {
+    clearTimeout(suggestTimers[i]);
+    const q = query.trim();
+    if (q.length < 2) {
+      draftTripSuggestions[i] = [];
+      suggestEl.style.display = 'none';
+      suggestEl.innerHTML = '';
+      return;
+    }
+    suggestTimers[i] = setTimeout(() => fetchSuggestions(i, q, suggestEl), 350);
+  }
+
+  async function fetchSuggestions(i, q, suggestEl) {
+    const seq = (suggestSeq[i] = (suggestSeq[i] || 0) + 1);
+    suggestEl.innerHTML = '<div class="trip-suggest-item trip-suggest-msg">검색 중…</div>';
+    suggestEl.style.display = 'block';
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&accept-language=ko&q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (seq !== suggestSeq[i]) return; // a newer keystroke has since started a fresher search
+      if (!data || !data.length) {
+        draftTripSuggestions[i] = [];
+        suggestEl.innerHTML = '<div class="trip-suggest-item trip-suggest-msg">검색 결과가 없어요</div>';
+        return;
+      }
+      draftTripSuggestions[i] = data.map(d => ({
+        label: d.display_name,
+        shortName: (d.display_name || '').split(',')[0].trim(),
+        lat: parseFloat(d.lat),
+        lng: parseFloat(d.lon),
+        iso2: d.address && d.address.country_code ? d.address.country_code.toUpperCase() : null
+      }));
+      suggestEl.innerHTML = draftTripSuggestions[i].map((s, idx) =>
+        `<div class="trip-suggest-item" data-suggest-item="${idx}">${escapeHtml(s.label)}</div>`
+      ).join('');
+    } catch (e) {
+      if (seq !== suggestSeq[i]) return;
+      suggestEl.innerHTML = '<div class="trip-suggest-item trip-suggest-msg">검색 중 오류가 발생했어요</div>';
+    }
+  }
+
   function parseLabel(label) {
     const yearMatch = (label || '').match(/(\d{4})/);
     const monthMatch = (label || '').match(/(\d{1,2})\s*월/);
     return { year: yearMatch ? yearMatch[1] : '', month: monthMatch ? monthMatch[1] : '' };
   }
-  function buildLabel(year, month) {
-    const y = (year || '').trim();
-    const m = (month || '').trim();
-    if (y && m) return `${y}년 ${m}월`;
-    if (y) return `${y}년`;
-    if (m) return `${m}월`;
-    return '';
+  function monthValueToLabel(value) {
+    const m = (value || '').trim().match(/^(\d{4})-(\d{2})$/);
+    return m ? `${m[1]}년 ${parseInt(m[2], 10)}월` : '';
   }
 
   function openSettings() {
     draftHomeQuery = HOME.name;
     draftTrips = allDestinations.map(d => {
       const p = parseLabel(d.month);
-      return { query: d.name, year: p.year, month: p.month };
+      return {
+        query: d.name,
+        monthValue: (p.year && p.month) ? `${p.year}-${p.month.padStart(2, '0')}` : '',
+        geo: { lat: d.lat, lng: d.lng, iso2: d.iso2 }
+      };
     });
     homeInput.value = draftHomeQuery;
     statusEl.textContent = '';
@@ -830,7 +932,7 @@
   closeSettingsBtn.addEventListener('click', closeSettings);
   homeInput.addEventListener('input', () => { draftHomeQuery = homeInput.value; });
   addTripBtn.addEventListener('click', () => {
-    draftTrips.push({ query: '', year: '', month: '' });
+    draftTrips.push({ query: '', monthValue: '', geo: null });
     renderTripRows();
   });
 
@@ -870,15 +972,19 @@
       const newDestinations = [];
       for (let i = 0; i < validTrips.length; i++) {
         const t = validTrips[i];
-        statusEl.textContent = `"${t.query}" 확인 중… (${i + 1}/${validTrips.length})`;
-        const geo = await geocodePlace(t.query);
+        let geo = t.geo;
         if (!geo) {
-          statusEl.textContent = `"${t.query}" 위치를 찾지 못했어요. 이름을 조금 더 구체적으로 적어보세요.`;
-          saveTripsBtn.disabled = false;
-          return;
+          // no autocomplete pick on record (typed freehand after selecting, or never selected) — geocode now
+          statusEl.textContent = `"${t.query}" 확인 중… (${i + 1}/${validTrips.length})`;
+          geo = await geocodePlace(t.query);
+          if (!geo) {
+            statusEl.textContent = `"${t.query}" 위치를 찾지 못했어요. 자동완성 목록에서 선택해보세요.`;
+            saveTripsBtn.disabled = false;
+            return;
+          }
+          await sleep(350);
         }
-        newDestinations.push({ name: t.query, month: buildLabel(t.year, t.month), lat: geo.lat, lng: geo.lng, iso2: geo.iso2, color: colorFor(i) });
-        await sleep(350);
+        newDestinations.push({ name: t.query, month: monthValueToLabel(t.monthValue), lat: geo.lat, lng: geo.lng, iso2: geo.iso2, color: colorFor(i) });
       }
 
       HOME = { name: draftHomeQuery, lat: homeGeo.lat, lng: homeGeo.lng };
