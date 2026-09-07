@@ -490,7 +490,9 @@
   controls.autoRotateSpeed = 0.35;
   controls.enableZoom = true;
   controls.enablePan = false;
-  controls.minDistance = 130;
+  // three-globe's sphere sits at radius 100 scene units, so 101 is the closest the camera can get
+  // without dipping below the globe's surface (which would clip through/behind the globe texture)
+  controls.minDistance = 101;
   controls.maxDistance = 700;
 
   let userInteracted = false;
@@ -646,7 +648,21 @@
     { radius: 2.3, alpha: 0.08, altitude: 0.0016 },
     { radius: 1.3, alpha: 0.13, altitude: 0.0020 }
   ];
+  // a slightly wider, more opaque disc sitting *below* the fill discs — since it's shorter than the
+  // outermost fill disc, the fill hides its cap everywhere they overlap, leaving only a thin rim
+  // showing past the fill's edge, which reads as a crisp border around the visited-area boundary
+  const HALO_BORDER = { radius: 3.65, alpha: 0.5, altitude: 0.0008 };
+
   function addVisitedHalo(dest) {
+    visitedHalos.push({
+      lat: dest.lat,
+      lng: dest.lng,
+      name: dest.name,
+      type: 'halo',
+      color: hexToRgba(dest.color, HALO_BORDER.alpha),
+      radius: HALO_BORDER.radius,
+      altitude: HALO_BORDER.altitude
+    });
     HALO_RINGS.forEach(ring => {
       visitedHalos.push({
         lat: dest.lat,
