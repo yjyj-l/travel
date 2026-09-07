@@ -234,15 +234,81 @@
     margin-bottom: 8px;
     flex-wrap: wrap;
   }
-  .trip-row input.trip-month {
+  .trip-row .month-picker-wrap {
+    position: relative;
     flex: 0 0 132px;
+  }
+  .trip-row .month-picker-btn {
+    width: 100%;
+    text-align: left;
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 8px;
     padding: 8px 8px;
     color: #fff;
     font-size: 12px;
-    color-scheme: dark;
+    height: auto;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .trip-row .month-picker-btn:hover { background: rgba(255,255,255,0.14); }
+  .month-picker-wrap.open .month-picker-btn { border-color: rgba(238,243,247,0.5); }
+  .month-picker-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 190px;
+    background: rgba(15,17,26,0.98);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    padding: 10px;
+    z-index: 60;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .month-picker-wrap.open .month-picker-dropdown { display: block; }
+  .month-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .month-picker-year { font-size: 13px; font-weight: 600; color: #fff; }
+  .trip-row .month-picker-nav {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 6px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff;
+    cursor: pointer;
+  }
+  .trip-row .month-picker-nav:hover { background: rgba(255,255,255,0.16); }
+  .month-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .trip-row .month-picker-cell {
+    width: auto;
+    height: auto;
+    padding: 6px 0;
+    border-radius: 6px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid transparent;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+  }
+  .trip-row .month-picker-cell:hover { background: rgba(255,255,255,0.14); }
+  .month-picker-cell.selected {
+    background: rgba(238,243,247,0.9);
+    color: #0a0c14;
+    font-weight: 600;
   }
   .trip-query-wrap {
     position: relative;
@@ -689,13 +755,21 @@
     visitedCountries.clear();
     if (countryFeatures.length) globe.polygonsData(countryFeatures);
 
+    // flight order always follows the trip date, not however the settings panel list is arranged
+    const orderedDestinations = [...destinations].sort((a, b) => monthSortKey(a.month) - monthSortKey(b.month));
+
     const points = [
       { name: HOME.name, lat: HOME.lat, lng: HOME.lng, size: 0.5, color: "#f3e9d2" },
-      ...destinations.map(d => ({ name: d.name, lat: d.lat, lng: d.lng, size: 0.32, color: d.color }))
+      ...orderedDestinations.map(d => ({ name: d.name, lat: d.lat, lng: d.lng, size: 0.32, color: d.color }))
     ];
     globe.pointsData(points);
 
-    legs = destinations.map(d => ({ from: HOME, to: d, dest: d, type: 'out' }));
+    legs = orderedDestinations.map(d => ({ from: HOME, to: d, dest: d, type: 'out' }));
+  }
+
+  function monthSortKey(label) {
+    const p = parseLabel(label);
+    return (parseInt(p.year, 10) || 0) * 100 + (parseInt(p.month, 10) || 0);
   }
 
   // ---- year filter ----
@@ -784,8 +858,43 @@
   let draftTrips = [];
   let draftHomeQuery = '';
   let draftTripSuggestions = {}; // rowIndex -> [{label, shortName, lat, lng, iso2}]
+  let draftMonthView = {}; // rowIndex -> year currently browsed in the open month-picker dropdown
   const suggestTimers = {};
   const suggestSeq = {};
+
+  function monthPickerLabel(monthValue) {
+    const m = (monthValue || '').match(/^(\d{4})-(\d{2})$/);
+    return m ? `${m[1]}년 ${parseInt(m[2], 10)}월` : '월 선택';
+  }
+
+  function buildMonthDropdownHTML(i) {
+    const t = draftTrips[i];
+    const sel = (t.monthValue || '').match(/^(\d{4})-(\d{2})$/);
+    const selYear = sel ? parseInt(sel[1], 10) : null;
+    const selMonth = sel ? parseInt(sel[2], 10) : null;
+    const viewYear = draftMonthView[i] || selYear || new Date().getFullYear();
+    draftMonthView[i] = viewYear;
+    const months = Array.from({ length: 12 }, (_, idx) => idx + 1);
+    return `
+      <div class="month-picker-header">
+        <button type="button" class="month-picker-nav" data-nav="-1">‹</button>
+        <span class="month-picker-year">${viewYear}년</span>
+        <button type="button" class="month-picker-nav" data-nav="1">›</button>
+      </div>
+      <div class="month-picker-grid">
+        ${months.map(m => {
+          const isSel = selYear === viewYear && selMonth === m;
+          return `<button type="button" class="month-picker-cell${isSel ? ' selected' : ''}" data-month="${m}">${m}월</button>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.month-picker-wrap')) {
+      document.querySelectorAll('.month-picker-wrap.open').forEach(w => w.classList.remove('open'));
+    }
+  });
 
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -793,9 +902,13 @@
 
   function renderTripRows() {
     draftTripSuggestions = {};
+    draftMonthView = {};
     tripListEl.innerHTML = draftTrips.map((t, i) => `
       <div class="trip-row" data-i="${i}">
-        <input type="month" class="trip-month" value="${escapeHtml(t.monthValue || '')}" data-field="monthValue">
+        <div class="month-picker-wrap" data-field="monthPicker">
+          <button type="button" class="month-picker-btn">${escapeHtml(monthPickerLabel(t.monthValue))}</button>
+          <div class="month-picker-dropdown"></div>
+        </div>
         <div class="trip-query-wrap">
           <input type="text" class="trip-query" placeholder="도시/국가 이름" value="${escapeHtml(t.query)}" data-field="query" autocomplete="off">
           <div class="trip-suggest"></div>
@@ -806,10 +919,43 @@
       </div>
     `).join('');
 
-    tripListEl.querySelectorAll('.trip-month').forEach(inp => {
-      inp.addEventListener('input', () => {
-        const i = Number(inp.closest('.trip-row').dataset.i);
-        draftTrips[i].monthValue = inp.value;
+    tripListEl.querySelectorAll('.month-picker-wrap').forEach(wrap => {
+      const i = Number(wrap.closest('.trip-row').dataset.i);
+      const btn = wrap.querySelector('.month-picker-btn');
+      const dropdown = wrap.querySelector('.month-picker-dropdown');
+
+      function refreshDropdown() {
+        dropdown.innerHTML = buildMonthDropdownHTML(i);
+        dropdown.querySelector('[data-nav="-1"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          draftMonthView[i] = (draftMonthView[i] || new Date().getFullYear()) - 1;
+          refreshDropdown();
+        });
+        dropdown.querySelector('[data-nav="1"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          draftMonthView[i] = (draftMonthView[i] || new Date().getFullYear()) + 1;
+          refreshDropdown();
+        });
+        dropdown.querySelectorAll('.month-picker-cell').forEach(cell => {
+          cell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const m = Number(cell.dataset.month);
+            const y = draftMonthView[i];
+            draftTrips[i].monthValue = `${y}-${String(m).padStart(2, '0')}`;
+            btn.textContent = monthPickerLabel(draftTrips[i].monthValue);
+            wrap.classList.remove('open');
+          });
+        });
+      }
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = wrap.classList.contains('open');
+        document.querySelectorAll('.month-picker-wrap.open').forEach(w => w.classList.remove('open'));
+        if (!isOpen) {
+          refreshDropdown();
+          wrap.classList.add('open');
+        }
       });
     });
 
@@ -843,7 +989,7 @@
       });
     });
 
-    tripListEl.querySelectorAll('.trip-row button').forEach(btn => {
+    tripListEl.querySelectorAll('.trip-row > button').forEach(btn => {
       btn.addEventListener('click', () => {
         const i = Number(btn.closest('.trip-row').dataset.i);
         const action = btn.dataset.action;
